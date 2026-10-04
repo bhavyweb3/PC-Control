@@ -1,7 +1,9 @@
 #include <iostream>
 #include <cstdlib>
-#include <ctime>
+#include <windows.h>
+
 #include "system.h"
+#include "utils.h"
 
 using namespace std;
 
@@ -10,10 +12,14 @@ void showSystemInfo()
     cout << "\n";
     cout << "SYSTEM INFORMATION\n\n";
 
-    system("systeminfo");
+    int result = system("systeminfo");
 
-    cout << "\nPress ENTER to continue...";
-    cin.get();
+    if (result != 0)
+    {
+        errorMessage();
+    }
+
+    pauseScreen();
 }
 
 void showCpuRam()
@@ -21,14 +27,46 @@ void showCpuRam()
     cout << "\n";
     cout << "CPU & RAM INFORMATION\n\n";
 
+    // CPU information
+    SYSTEM_INFO systemInfo;
+    GetSystemInfo(&systemInfo);
+
     cout << "CPU:\n";
-    system("wmic cpu get name");
+    cout << "Number of CPU cores: "
+         << systemInfo.dwNumberOfProcessors << "\n";
 
-    cout << "\nRAM:\n";
-    system("wmic OS get FreePhysicalMemory,TotalVisibleMemorySize");
+    // RAM information
+    MEMORYSTATUSEX memoryStatus;
+    memoryStatus.dwLength = sizeof(memoryStatus);
 
-    cout << "\nPress ENTER to continue...";
-    cin.get();
+    if (GlobalMemoryStatusEx(&memoryStatus))
+    {
+        unsigned long long totalRAM =
+            memoryStatus.ullTotalPhys / (1024ULL * 1024ULL);
+
+        unsigned long long availableRAM =
+            memoryStatus.ullAvailPhys / (1024ULL * 1024ULL);
+
+        unsigned long long usedRAM =
+            totalRAM - availableRAM;
+
+        cout << "\nRAM:\n";
+
+        cout << "Total RAM: "
+             << totalRAM << " MB\n";
+
+        cout << "Used RAM: "
+             << usedRAM << " MB\n";
+
+        cout << "Available RAM: "
+             << availableRAM << " MB\n";
+    }
+    else
+    {
+        errorMessage();
+    }
+
+    pauseScreen();
 }
 
 void showDiskSpace()
@@ -36,10 +74,44 @@ void showDiskSpace()
     cout << "\n";
     cout << "DISK SPACE\n\n";
 
-    system("wmic logicaldisk get caption,freespace,size");
+    ULARGE_INTEGER freeBytes;
+    ULARGE_INTEGER totalBytes;
+    ULARGE_INTEGER totalFreeBytes;
 
-    cout << "\nPress ENTER to continue...";
-    cin.get();
+    if (GetDiskFreeSpaceExA(
+            "C:\\",
+            &freeBytes,
+            &totalBytes,
+            &totalFreeBytes))
+    {
+        unsigned long long totalGB =
+            totalBytes.QuadPart /
+            (1024ULL * 1024ULL * 1024ULL);
+
+        unsigned long long freeGB =
+            totalFreeBytes.QuadPart /
+            (1024ULL * 1024ULL * 1024ULL);
+
+        unsigned long long usedGB =
+            totalGB - freeGB;
+
+        cout << "Drive: C:\\\n\n";
+
+        cout << "Total Space: "
+             << totalGB << " GB\n";
+
+        cout << "Used Space: "
+             << usedGB << " GB\n";
+
+        cout << "Free Space: "
+             << freeGB << " GB\n";
+    }
+    else
+    {
+        errorMessage();
+    }
+
+    pauseScreen();
 }
 
 void showBattery()
@@ -47,13 +119,36 @@ void showBattery()
     cout << "\n";
     cout << "BATTERY STATUS\n\n";
 
-    system(
-        "wmic path Win32_Battery "
-        "get BatteryStatus,EstimatedChargeRemaining"
-    );
+    SYSTEM_POWER_STATUS powerStatus;
 
-    cout << "\nPress ENTER to continue...";
-    cin.get();
+    if (GetSystemPowerStatus(&powerStatus))
+    {
+        if (powerStatus.BatteryLifePercent != 255)
+        {
+            cout << "Battery Level: "
+                 << (int)powerStatus.BatteryLifePercent
+                 << "%\n";
+
+            if (powerStatus.ACLineStatus == 1)
+            {
+                cout << "Power: Connected to charger\n";
+            }
+            else
+            {
+                cout << "Power: Running on battery\n";
+            }
+        }
+        else
+        {
+            cout << "Battery information is not available.\n";
+        }
+    }
+    else
+    {
+        errorMessage();
+    }
+
+    pauseScreen();
 }
 
 void showDateTime()
@@ -61,11 +156,9 @@ void showDateTime()
     cout << "\n";
     cout << "DATE & TIME\n\n";
 
-    time_t now = time(0);
+    system("echo Current Date and Time:");
+    system("date /t");
+    system("time /t");
 
-    cout << "Current Date & Time:\n";
-    cout << ctime(&now);
-
-    cout << "\nPress ENTER to continue...";
-    cin.get();
+    pauseScreen();
 }
