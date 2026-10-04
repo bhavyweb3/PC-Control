@@ -1,0 +1,17 @@
+# Compiled programs
+PC-Control.exe
+test.exe
+
+# Object files
+*.o
+*.obj
+
+# Temporary files
+*.tmp
+
+# VS Code settings
+.vscode/
+
+# Windows files
+Thumbs.db
+Desktop.ini
